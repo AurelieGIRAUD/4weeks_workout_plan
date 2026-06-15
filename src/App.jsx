@@ -115,6 +115,9 @@ const JOKER_DAYS = [
   },
 ];
 
+// jokerLogs key: "{weekIdx}_{id}" e.g. "0_mobility", "2_zero"
+function jlKey(weekIdx, id) { return weekIdx + "_" + id; }
+
 export default function App() {
   const [activeWeek, setActiveWeek] = useState(0);
   const [expandedDay, setExpandedDay] = useState(null);
@@ -122,20 +125,30 @@ export default function App() {
   const [minutes, setMinutes] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(null);
+
+  // Regular session duration prompt
   const [promptKey, setPromptKey] = useState(null);
   const [promptMinutes, setPromptMinutes] = useState("");
 
-  // ─── JOKER STATE ────────────────────────────────────────────────────────────
-  const [jokerCompleted, setJokerCompleted] = useState(function() {
-    try { return JSON.parse(localStorage.getItem("joker_completed") || "{}"); } catch { return {}; }
-  });
-  const [jokerZero, setJokerZero] = useState(function() {
-    try { return JSON.parse(localStorage.getItem("joker_zero") || "{}"); } catch { return {}; }
+  // Joker workout duration prompt
+  const [jokerPromptId, setJokerPromptId] = useState(null);
+  const [jokerPromptMinutes, setJokerPromptMinutes] = useState("");
+
+  // ─── JOKER STATE (unified log array model) ──────────────────────────────────
+  // jokerLogs: { "0_mobility": [{minutes, ts}, ...], "0_zero": [{reasons, note, ts}, ...] }
+  const [jokerLogs, setJokerLogs] = useState(function() {
+    try { return JSON.parse(localStorage.getItem("joker_logs") || "{}"); } catch { return {}; }
   });
   const [expandedJoker, setExpandedJoker] = useState(null);
   const [showZeroModal, setShowZeroModal] = useState(false);
   const [zeroDraftReasons, setZeroDraftReasons] = useState([]);
   const [zeroDraftNote, setZeroDraftNote] = useState("");
+
+  // ─── SUNDAY REST TRACKING ───────────────────────────────────────────────────
+  // Separate from completed — does not affect session counts or 150-min total
+  const [restDone, setRestDone] = useState(function() {
+    try { return JSON.parse(localStorage.getItem("rest_done") || "{}"); } catch { return {}; }
+  });
 
   useEffect(() => { loadCompletions(); }, []);
 
@@ -162,11 +175,11 @@ export default function App() {
     }
   };
 
+  // ─── REGULAR SESSION HANDLERS ───────────────────────────────────────────────
   const handleTick = (weekIndex, dayIndex, e) => {
     e.stopPropagation();
     const key = "w" + weekIndex + "-d" + dayIndex;
-    const isDone = !!completed[key];
-    if (isDone) {
+    if (completed[key]) {
       untick(weekIndex, dayIndex, key);
     } else {
       setPromptKey(key + "|" + weekIndex + "|" + dayIndex);
@@ -236,52 +249,58 @@ export default function App() {
     }
   };
 
-  const weekActualMinutes = (weekIdx) => {
-    return DAY_ORDER.reduce((sum, _, di) => {
-      const k = "w" + weekIdx + "-d" + di;
-      return sum + (minutes[k] || 0);
-    }, 0);
-  };
-
-  // ─── JOKER HANDLERS ─────────────────────────────────────────────────────────
-  const jKey = (weekIdx, id) => "w" + weekIdx + "-j-" + id;
-
-  const tickJoker = (jokerId, e) => {
+  // ─── SUNDAY REST HANDLER ────────────────────────────────────────────────────
+  const toggleRestDone = (weekIdx, e) => {
     e.stopPropagation();
-    const k = jKey(activeWeek, jokerId);
-    const joker = JOKER_DAYS.find(function(j) { return j.id === jokerId; });
-    const next = { ...jokerCompleted };
-    if (next[k]) {
-      delete next[k];
-    } else {
-      next[k] = joker.minutesCount;
-    }
-    setJokerCompleted(next);
-    localStorage.setItem("joker_completed", JSON.stringify(next));
+    const k = "w" + weekIdx + "-rest";
+    const next = { ...restDone, [k]: !restDone[k] };
+    if (!next[k]) delete next[k];
+    setRestDone(next);
+    localStorage.setItem("rest_done", JSON.stringify(next));
   };
 
-  const openZeroModal = () => {
-    const k = "w" + activeWeek + "-zero";
-    const existing = jokerZero[k];
-    setZeroDraftReasons(existing ? existing.reasons : []);
-    setZeroDraftNote(existing ? existing.note : "");
+  // ─── JOKER WORKOUT DURATION HANDLERS ────────────────────────────────────────
+  const openJokerPrompt = (jokerId, e) => {
+    e.stopPropagation();
+    setJokerPromptId(jokerId);
+    setJokerPromptMinutes("");
+  };
+
+  const confirmJokerPrompt = () => {
+    if (!jokerPromptId) return;
+    const k = jlKey(activeWeek, jokerPromptId);
+    const mins = parseInt(jokerPromptMinutes) || 0;
+    const entry = { minutes: mins, ts: new Date().toISOString() };
+    const next = { ...jokerLogs, [k]: [...(jokerLogs[k] || []), entry] };
+    setJokerLogs(next);
+    localStorage.setItem("joker_logs", JSON.stringify(next));
+    setJokerPromptId(null);
+  };
+
+  const skipJokerPrompt = () => {
+    if (!jokerPromptId) return;
+    const k = jlKey(activeWeek, jokerPromptId);
+    const entry = { minutes: 0, ts: new Date().toISOString() };
+    const next = { ...jokerLogs, [k]: [...(jokerLogs[k] || []), entry] };
+    setJokerLogs(next);
+    localStorage.setItem("joker_logs", JSON.stringify(next));
+    setJokerPromptId(null);
+  };
+
+  // ─── ZERO DAY HANDLERS ──────────────────────────────────────────────────────
+  const openZeroModal = (e) => {
+    if (e) e.stopPropagation();
+    setZeroDraftReasons([]);
+    setZeroDraftNote("");
     setShowZeroModal(true);
   };
 
   const confirmZeroDay = () => {
-    const k = "w" + activeWeek + "-zero";
-    const next = { ...jokerZero, [k]: { reasons: zeroDraftReasons, note: zeroDraftNote.trim() } };
-    setJokerZero(next);
-    localStorage.setItem("joker_zero", JSON.stringify(next));
-    setShowZeroModal(false);
-  };
-
-  const clearZeroDay = () => {
-    const k = "w" + activeWeek + "-zero";
-    const next = { ...jokerZero };
-    delete next[k];
-    setJokerZero(next);
-    localStorage.setItem("joker_zero", JSON.stringify(next));
+    const k = jlKey(activeWeek, "zero");
+    const entry = { reasons: zeroDraftReasons, note: zeroDraftNote.trim(), ts: new Date().toISOString() };
+    const next = { ...jokerLogs, [k]: [...(jokerLogs[k] || []), entry] };
+    setJokerLogs(next);
+    localStorage.setItem("joker_logs", JSON.stringify(next));
     setShowZeroModal(false);
   };
 
@@ -291,15 +310,25 @@ export default function App() {
     });
   };
 
+  // ─── DERIVED VALUES ─────────────────────────────────────────────────────────
+  const weekActualMinutes = (weekIdx) => {
+    const regularMins = DAY_ORDER.reduce(function(sum, _, di) {
+      return sum + (minutes["w" + weekIdx + "-d" + di] || 0);
+    }, 0);
+    const jokerMins = JOKER_DAYS.reduce(function(sum, joker) {
+      const entries = jokerLogs[jlKey(weekIdx, joker.id)] || [];
+      return sum + entries.reduce(function(s, e) { return s + (e.minutes || 0); }, 0);
+    }, 0);
+    return regularMins + jokerMins;
+  };
+
   const accent = weekAccent[activeWeek];
   const week = WEEKS[activeWeek];
-  const weekProgress = DAY_ORDER.filter((_, i) => completed["w" + activeWeek + "-d" + i]).length;
+  // weekProgress intentionally excludes rest days — completed only has training sessions
+  const weekProgress = DAY_ORDER.filter(function(_, i) { return completed["w" + activeWeek + "-d" + i]; }).length;
   const totalCompleted = Object.keys(completed).length;
   const actualMin = weekActualMinutes(activeWeek);
   const toggleDay = (i) => setExpandedDay(expandedDay === i ? null : i);
-
-  const zeroKey = "w" + activeWeek + "-zero";
-  const zeroDone = !!jokerZero[zeroKey];
 
   if (loading) {
     return (
@@ -314,20 +343,17 @@ export default function App() {
   return (
     <div style={{ fontFamily: "Georgia, serif", background: "#0e0e14", minHeight: "100vh", color: "#f0ede8", paddingBottom: 80 }}>
 
-      {/* Duration prompt modal */}
+      {/* Regular session duration modal */}
       {promptKey && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div style={{ background: "#15151e", border: "1px solid #2e2e42", borderRadius: 20, padding: 28, maxWidth: 320, width: "100%" }}>
             <div style={{ fontSize: 22, textAlign: "center", marginBottom: 8 }}>💪</div>
             <h3 style={{ margin: "0 0 6px", fontSize: 16, color: "#f0ede8", textAlign: "center" }}>Great work!</h3>
             <p style={{ margin: "0 0 20px", fontSize: 12, color: "#999", textAlign: "center", lineHeight: 1.6 }}>How many minutes did you actually train?</p>
-            <input
-              type="number"
-              value={promptMinutes}
+            <input type="number" value={promptMinutes}
               onChange={function(e) { setPromptMinutes(e.target.value); }}
               onKeyDown={function(e) { if (e.key === "Enter") confirmPrompt(); }}
-              placeholder="e.g. 42"
-              autoFocus
+              placeholder="e.g. 42" autoFocus
               style={{ width: "100%", background: "#0e0e14", border: "1px solid #2a2a38", borderRadius: 10, padding: "12px 14px", fontSize: 20, color: "#f0ede8", textAlign: "center", fontFamily: "Georgia, serif", outline: "none", boxSizing: "border-box", marginBottom: 14 }}
             />
             <button onClick={confirmPrompt}
@@ -335,6 +361,39 @@ export default function App() {
               Save
             </button>
             <button onClick={skipPrompt}
+              style={{ width: "100%", background: "transparent", border: "1px solid #2a2a38", borderRadius: 10, padding: "10px 0", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "inherit" }}>
+              Skip — just mark as done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Joker workout duration modal */}
+      {jokerPromptId && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ background: "#15151e", border: "1px solid #2e2e42", borderRadius: 20, padding: 28, maxWidth: 320, width: "100%" }}>
+            {(function() {
+              const joker = JOKER_DAYS.find(function(j) { return j.id === jokerPromptId; });
+              return (
+                <>
+                  <div style={{ fontSize: 22, textAlign: "center", marginBottom: 8 }}>{joker ? joker.icon : "🃏"}</div>
+                  <h3 style={{ margin: "0 0 6px", fontSize: 16, color: "#f0ede8", textAlign: "center" }}>Nice work!</h3>
+                  <p style={{ margin: "0 0 6px", fontSize: 13, color: joker ? joker.color : accent, textAlign: "center", fontWeight: 600 }}>{joker ? joker.title : ""}</p>
+                  <p style={{ margin: "0 0 20px", fontSize: 12, color: "#999", textAlign: "center", lineHeight: 1.6 }}>How long did this take?</p>
+                </>
+              );
+            })()}
+            <input type="number" value={jokerPromptMinutes}
+              onChange={function(e) { setJokerPromptMinutes(e.target.value); }}
+              onKeyDown={function(e) { if (e.key === "Enter") confirmJokerPrompt(); }}
+              placeholder="e.g. 20" autoFocus
+              style={{ width: "100%", background: "#0e0e14", border: "1px solid #2a2a38", borderRadius: 10, padding: "12px 14px", fontSize: 20, color: "#f0ede8", textAlign: "center", fontFamily: "Georgia, serif", outline: "none", boxSizing: "border-box", marginBottom: 14 }}
+            />
+            <button onClick={confirmJokerPrompt}
+              style={{ width: "100%", background: (JOKER_DAYS.find(function(j) { return j.id === jokerPromptId; }) || {}).color || accent, border: "none", borderRadius: 10, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#111", cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>
+              Log it
+            </button>
+            <button onClick={skipJokerPrompt}
               style={{ width: "100%", background: "transparent", border: "1px solid #2a2a38", borderRadius: 10, padding: "10px 0", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "inherit" }}>
               Skip — just mark as done
             </button>
@@ -376,12 +435,6 @@ export default function App() {
               style={{ width: "100%", background: JC.pilates, border: "none", borderRadius: 10, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#111", cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>
               Log Zero Day
             </button>
-            {zeroDone && (
-              <button onClick={clearZeroDay}
-                style={{ width: "100%", background: "transparent", border: "1px solid #2a2a38", borderRadius: 10, padding: "10px 0", fontSize: 12, color: "#666", cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>
-                Clear this week's zero day
-              </button>
-            )}
             <button onClick={function() { setShowZeroModal(false); }}
               style={{ width: "100%", background: "transparent", border: "none", padding: "8px 0", fontSize: 11, color: "#555", cursor: "pointer", fontFamily: "inherit" }}>
               Cancel
@@ -435,7 +488,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Actual minutes logged this week */}
+        {/* Actual minutes logged this week (includes joker workout minutes) */}
         <div style={{ marginTop: 14, background: "#15151e", border: "1px solid #1e1e2c", borderRadius: 12, padding: "12px 14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ fontSize: 11, color: "#999" }}>Active minutes logged this week</span>
@@ -467,22 +520,32 @@ export default function App() {
           const isExp = expandedDay === i;
           const isSaving = saving === key;
           const isRest = session.type === "rest";
+          const isSunday = dayKey === "sun";
           const ts = tagStyle[session.type] || tagStyle.rest;
           const imgKey = SESSION_IMAGE[dayKey];
           const sessionImg = imgKey ? MUSCLE_IMAGES[imgKey] : null;
           const loggedMins = minutes[key] || 0;
+          const restTaken = isSunday && !!restDone["w" + activeWeek + "-rest"];
 
           return (
             <div key={dayKey} onClick={function() { toggleDay(i); }}
               style={{ marginBottom: 8, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: isDone ? "#0c180c" : "#15151e", border: "1px solid " + (isDone ? "#1e3d1e" : isExp ? "#2e2e42" : "#1e1e2c"), boxShadow: isExp ? "0 8px 32px rgba(0,0,0,0.5)" : "none", transition: "all 0.2s" }}>
 
               <div style={{ padding: "13px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-                <div onClick={function(e) { if (!isRest) handleTick(activeWeek, i, e); }}
-                  style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, cursor: isRest ? "default" : "pointer", border: "2px solid " + (isDone ? "#4ade80" : "#2a2a38"), background: isDone ? "#4ade80" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s", opacity: isSaving ? 0.5 : 1 }}>
-                  {isSaving
-                    ? <div style={{ width: 10, height: 10, border: "2px solid #888", borderTop: "2px solid #fff", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
-                    : isDone ? <span style={{ color: "#0a1a0a", fontSize: 12, fontWeight: 900 }}>✓</span> : null}
-                </div>
+                {/* Circle: training tick for non-rest, rest toggle for Sunday */}
+                {isSunday ? (
+                  <div onClick={function(e) { toggleRestDone(activeWeek, e); }}
+                    style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: "2px solid " + (restTaken ? "#60A5FA" : "#2a2a38"), background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s" }}>
+                    {restTaken && <span style={{ color: "#60A5FA", fontSize: 12, fontWeight: 900 }}>✓</span>}
+                  </div>
+                ) : (
+                  <div onClick={function(e) { if (!isRest) handleTick(activeWeek, i, e); }}
+                    style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, cursor: isRest ? "default" : "pointer", border: "2px solid " + (isDone ? "#4ade80" : "#2a2a38"), background: isDone ? "#4ade80" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s", opacity: isSaving ? 0.5 : 1 }}>
+                    {isSaving
+                      ? <div style={{ width: 10, height: 10, border: "2px solid #888", borderTop: "2px solid #fff", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
+                      : isDone ? <span style={{ color: "#0a1a0a", fontSize: 12, fontWeight: 900 }}>✓</span> : null}
+                  </div>
+                )}
 
                 {sessionImg ? (
                   <div style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", border: "1px solid " + session.color + "40", flexShrink: 0 }}>
@@ -499,7 +562,13 @@ export default function App() {
                     {wd.duration !== "—" && <span style={{ fontSize: 10, color: "#888" }}>{wd.duration}</span>}
                     {week.deload && !isRest && <span style={{ fontSize: 9, background: "#2a1a3a", color: "#A78BFA", padding: "2px 7px", borderRadius: 8 }}>DELOAD</span>}
                   </div>
-                  <div style={{ fontSize: 12, color: isDone ? "#4ade8088" : "#666", marginTop: 3 }}>{session.title}</div>
+                  {isSunday ? (
+                    <div style={{ fontSize: 12, color: restTaken ? "#60A5FA88" : "#555", marginTop: 3 }}>
+                      {restTaken ? "Rest taken ✓" : "Mark rest taken"}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: isDone ? "#4ade8088" : "#666", marginTop: 3 }}>{session.title}</div>
+                  )}
                   {isDone && loggedMins > 0 && (
                     <div style={{ fontSize: 10, color: "#4ade8066", marginTop: 3 }}>Logged: {loggedMins} min</div>
                   )}
@@ -578,31 +647,38 @@ export default function App() {
 
         {/* Joker workout cards */}
         {JOKER_DAYS.map(function(joker) {
-          const k = jKey(activeWeek, joker.id);
-          const isDone = !!jokerCompleted[k];
+          const k = jlKey(activeWeek, joker.id);
+          const entries = jokerLogs[k] || [];
+          const count = entries.length;
+          const totalMins = entries.reduce(function(s, e) { return s + (e.minutes || 0); }, 0);
           const isExp = expandedJoker === joker.id;
 
           return (
             <div key={joker.id} onClick={function() { setExpandedJoker(isExp ? null : joker.id); }}
-              style={{ marginBottom: 8, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: isDone ? "#0c1a14" : "#15151e", border: "1px solid " + (isDone ? joker.color + "40" : isExp ? "#2e2e42" : "#1e1e2c"), boxShadow: isExp ? "0 8px 32px rgba(0,0,0,0.5)" : "none", transition: "all 0.2s" }}>
+              style={{ marginBottom: 8, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: count > 0 ? "#0c1a14" : "#15151e", border: "1px solid " + (count > 0 ? joker.color + "40" : isExp ? "#2e2e42" : "#1e1e2c"), boxShadow: isExp ? "0 8px 32px rgba(0,0,0,0.5)" : "none", transition: "all 0.2s" }}>
 
               <div style={{ padding: "13px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-                <div onClick={function(e) { tickJoker(joker.id, e); }}
-                  style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: "2px solid " + (isDone ? joker.color : "#2a2a38"), background: isDone ? joker.color + "30" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s" }}>
-                  {isDone && <span style={{ color: joker.color, fontSize: 12, fontWeight: 900 }}>✓</span>}
+                {/* Count badge circle — tap always opens duration modal */}
+                <div onClick={function(e) { openJokerPrompt(joker.id, e); }}
+                  style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: "2px solid " + (count > 0 ? joker.color : "#2a2a38"), background: count > 0 ? joker.color + "20" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s" }}>
+                  {count > 0
+                    ? <span style={{ color: joker.color, fontSize: 9, fontWeight: 900, letterSpacing: -0.5 }}>{count}×</span>
+                    : null}
                 </div>
 
                 <div style={{ fontSize: 24, flexShrink: 0, width: 44, textAlign: "center" }}>{joker.icon}</div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 700, fontSize: 14, color: isDone ? joker.color : "#f0ede8" }}>{joker.title}</span>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: count > 0 ? joker.color : "#f0ede8" }}>{joker.title}</span>
                     <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", padding: "2px 8px", borderRadius: 6, background: joker.color + "18", color: joker.color }}>joker</span>
                     <span style={{ fontSize: 10, color: "#888" }}>{joker.duration}</span>
                   </div>
-                  <div style={{ fontSize: 12, color: isDone ? joker.color + "99" : "#666", marginTop: 3 }}>{joker.tagline}</div>
-                  {isDone && (
-                    <div style={{ fontSize: 10, color: joker.color + "88", marginTop: 3 }}>Logged: {joker.minutesCount} min</div>
+                  <div style={{ fontSize: 12, color: count > 0 ? joker.color + "99" : "#666", marginTop: 3 }}>{joker.tagline}</div>
+                  {count > 0 && (
+                    <div style={{ fontSize: 10, color: joker.color + "88", marginTop: 3 }}>
+                      Logged: {totalMins} min ({count} session{count > 1 ? "s" : ""})
+                    </div>
                   )}
                 </div>
 
@@ -638,6 +714,12 @@ export default function App() {
                       </div>
                     );
                   })}
+                  {/* Mark Complete button — opens duration modal */}
+                  <button
+                    onClick={function(e) { openJokerPrompt(joker.id, e); }}
+                    style={{ marginTop: 8, width: "100%", background: joker.color + "18", border: "1px solid " + joker.color + "50", borderRadius: 10, padding: "11px 0", fontSize: 13, fontWeight: 700, color: joker.color, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s" }}>
+                    Mark Complete
+                  </button>
                 </div>
               )}
             </div>
@@ -646,38 +728,61 @@ export default function App() {
 
         {/* Zero Day card */}
         {(function() {
-          const zeroData = jokerZero[zeroKey];
+          const k = jlKey(activeWeek, "zero");
+          const entries = jokerLogs[k] || [];
+          const count = entries.length;
+
           return (
-            <div onClick={openZeroModal}
-              style={{ marginBottom: 8, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: zeroDone ? "#0f0c1a" : "#15151e", border: "1px solid " + (zeroDone ? "#3a2a5050" : "#1e1e2c"), transition: "all 0.2s" }}>
-              <div style={{ padding: "13px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, border: "2px solid " + (zeroDone ? JC.pilates : "#2a2a38"), background: zeroDone ? JC.pilates + "30" : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  {zeroDone && <span style={{ color: JC.pilates, fontSize: 12, fontWeight: 900 }}>✓</span>}
+            <div style={{ marginBottom: 8, borderRadius: 14, overflow: "hidden", background: count > 0 ? "#0f0c1a" : "#15151e", border: "1px solid " + (count > 0 ? "#3a2a5050" : "#1e1e2c"), transition: "all 0.2s" }}>
+              {/* Header row */}
+              <div onClick={function(e) { openZeroModal(e); }} style={{ padding: "13px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                {/* Count badge circle */}
+                <div onClick={function(e) { openZeroModal(e); }}
+                  style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: "2px solid " + (count > 0 ? JC.pilates : "#2a2a38"), background: count > 0 ? JC.pilates + "20" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s" }}>
+                  {count > 0
+                    ? <span style={{ color: JC.pilates, fontSize: 9, fontWeight: 900, letterSpacing: -0.5 }}>{count}×</span>
+                    : null}
                 </div>
 
                 <div style={{ fontSize: 24, flexShrink: 0, width: 44, textAlign: "center" }}>🌑</div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 700, fontSize: 14, color: zeroDone ? JC.pilates : "#f0ede8" }}>Zero Day</span>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: count > 0 ? JC.pilates : "#f0ede8" }}>Zero Day</span>
                     <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", padding: "2px 8px", borderRadius: 6, background: "#1a1030", color: JC.pilates }}>rest</span>
                   </div>
-                  {zeroDone && zeroData && zeroData.reasons.length > 0 ? (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
-                      {zeroData.reasons.map(function(r) {
-                        return <span key={r} style={{ fontSize: 9, background: "#1a1030", border: "1px solid " + JC.pilates + "30", borderRadius: 10, padding: "2px 7px", color: JC.pilates + "99" }}>{r}</span>;
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 12, color: "#555", marginTop: 3 }}>Honest rest — log your reason, no guilt</div>
-                  )}
-                  {zeroDone && zeroData && zeroData.note ? (
-                    <div style={{ fontSize: 10, color: JC.pilates + "66", marginTop: 4, fontStyle: "italic" }}>{zeroData.note}</div>
-                  ) : null}
+                  <div style={{ fontSize: 12, color: "#555", marginTop: 3 }}>
+                    {count > 0 ? "Tap ✎ to log another entry" : "Honest rest — log your reason, no guilt"}
+                  </div>
                 </div>
 
                 <div style={{ fontSize: 14, color: "#444" }}>✎</div>
               </div>
+
+              {/* Log history — shown inline when entries exist */}
+              {entries.length > 0 && (
+                <div style={{ padding: "0 16px 14px", borderTop: "1px solid #1e1e2c" }}>
+                  {entries.map(function(entry, ei) {
+                    return (
+                      <div key={ei} style={{ marginTop: 10, paddingTop: ei > 0 ? 10 : 0, borderTop: ei > 0 ? "1px solid #1e1e2c" : "none" }}>
+                        {entry.reasons && entry.reasons.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: ei === 0 ? 10 : 0 }}>
+                            {entry.reasons.map(function(r) {
+                              return <span key={r} style={{ fontSize: 9, background: "#1a1030", border: "1px solid " + JC.pilates + "30", borderRadius: 10, padding: "2px 7px", color: JC.pilates + "99" }}>{r}</span>;
+                            })}
+                          </div>
+                        )}
+                        {(!entry.reasons || entry.reasons.length === 0) && (
+                          <div style={{ fontSize: 10, color: "#444", marginTop: ei === 0 ? 10 : 0, fontStyle: "italic" }}>No reason specified</div>
+                        )}
+                        {entry.note ? (
+                          <div style={{ fontSize: 10, color: JC.pilates + "66", marginTop: 4, fontStyle: "italic" }}>{entry.note}</div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })()}
