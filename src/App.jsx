@@ -6,6 +6,115 @@ import {
 } from "./lib/workoutData";
 import ProgressRings from "./components/ProgressRings";
 
+// ─── JOKER COLORS ─────────────────────────────────────────────────────────────
+const JC = {
+  pilates: "#A78BFA",
+  glutes:  "#FF5C87",
+  run:     "#3ECFB2",
+  arms:    "#FF9A3C",
+};
+
+// ─── ZERO DAY REASONS ─────────────────────────────────────────────────────────
+const ZERO_REASONS = [
+  "🤒 Sick", "😓 Exhausted", "✈️ Travelling", "👨‍👩‍👧 Family / Social",
+  "🧠 Mental health day", "🤕 Injury / Pain", "💼 Work overload",
+  "⏰ No time", "🎨 Creative Activity",
+];
+
+// ─── JOKER WORKOUTS ───────────────────────────────────────────────────────────
+const JOKER_DAYS = [
+  {
+    id: "mobility",
+    icon: "🧘",
+    title: "Mobility Flow",
+    duration: "~20 min",
+    minutesCount: 20,
+    color: JC.pilates,
+    tagline: "Deep stretch · joint mobility · zero intensity",
+    sections: [
+      { name: "Hip & Glute Openers", exercises: [
+        { name: "90/90 hip switches", detail: "1 min · rotate slowly between both positions · breathe into the stretch" },
+        { name: "Pigeon pose", detail: "90 sec / side · let gravity do the work" },
+        { name: "Supine figure-4", detail: "60 sec / side · gentle pull on shin" },
+      ]},
+      { name: "Thoracic & Shoulder", exercises: [
+        { name: "Thread the needle", detail: "45 sec / side · thoracic rotation · let shoulder melt down" },
+        { name: "Cat-cow", detail: "10 slow reps · breathe: exhale round, inhale arch" },
+        { name: "Doorframe chest opener", detail: "45 sec · arms at 90°, lean into stretch" },
+      ]},
+      { name: "Full Body Flow", exercises: [
+        { name: "World's greatest stretch", detail: "5 reps / side · lunge + rotate + reach — all planes of motion" },
+        { name: "Downdog to cobra flow", detail: "8 slow reps · exhale down, inhale up" },
+        { name: "Supine spinal twist", detail: "60 sec / side · close your eyes, breathe" },
+      ]},
+    ],
+  },
+  {
+    id: "activation",
+    icon: "🔴",
+    title: "Glute Activation Only",
+    duration: "~15 min",
+    minutesCount: 15,
+    color: JC.glutes,
+    tagline: "Signal the muscle · no kettlebell · no fatigue",
+    sections: [
+      { name: "Band Activation", exercises: [
+        { name: "Banded clamshells", detail: "2×15 / side · band above knees · slow squeeze at top" },
+        { name: "Glute bridge hold", detail: "2×12 · 2-sec squeeze · lower back stays neutral" },
+        { name: "Lateral band walk", detail: "2×15 steps / side · stay low · band at ankles" },
+      ]},
+      { name: "Bodyweight Finisher", exercises: [
+        { name: "Donkey kickback", detail: "2×12 / side · squeeze glute at peak, slow return" },
+        { name: "Side-lying hip abduction", detail: "2×15 / side · no band · slow arc, feel the medius" },
+      ]},
+    ],
+  },
+  {
+    id: "walk",
+    icon: "🚶",
+    title: "Treadmill Walk",
+    duration: "~25 min",
+    minutesCount: 25,
+    color: JC.run,
+    tagline: "Incline walk · low impact · glute stimulus",
+    sections: [
+      { name: "Incline Walk", note: "Maintain upright posture — don't hold the handles.", exercises: [
+        { name: "Warm-up flat walk", detail: "3 min · 5 km/h · loosen the legs" },
+        { name: "Incline walk", detail: "20 min · 5.5–6 km/h · 5–7% incline · push through the heel" },
+        { name: "Cool-down flat walk", detail: "2 min · 4.5 km/h · let heart rate settle" },
+      ]},
+      { name: "Stretch (optional)", exercises: [
+        { name: "Standing calf + hip flexor stretch", detail: "45 sec / side · post-walk feels great" },
+      ]},
+    ],
+  },
+  {
+    id: "mini",
+    icon: "💪",
+    title: "Mini Strength Circuit",
+    duration: "~25 min",
+    minutesCount: 25,
+    color: JC.arms,
+    tagline: "2 sets · no failure · bodyweight + band only",
+    sections: [
+      { name: "Lower Body", exercises: [
+        { name: "Bodyweight squat", detail: "2×12 · slow · feel the movement pattern" },
+        { name: "Banded floor hip thrust", detail: "2×15 · moderate band · 1-sec squeeze at top" },
+        { name: "Lateral band walk", detail: "2×12 steps / side" },
+      ]},
+      { name: "Upper Body", exercises: [
+        { name: "Band shoulder press", detail: "2×12 · stand on band · elbows in front of ears" },
+        { name: "Band bicep curl", detail: "2×12 · slow tempo · 2 sec up, 3 sec down" },
+        { name: "Band face pull", detail: "2×15 · anchor at face height · posture builder" },
+      ]},
+      { name: "Core", exercises: [
+        { name: "Dead bug", detail: "2×8 / side · lower back glued to floor" },
+        { name: "Plank hold", detail: "2×25 sec · squeeze everything" },
+      ]},
+    ],
+  },
+];
+
 export default function App() {
   const [activeWeek, setActiveWeek] = useState(0);
   const [expandedDay, setExpandedDay] = useState(null);
@@ -15,6 +124,18 @@ export default function App() {
   const [saving, setSaving] = useState(null);
   const [promptKey, setPromptKey] = useState(null);
   const [promptMinutes, setPromptMinutes] = useState("");
+
+  // ─── JOKER STATE ────────────────────────────────────────────────────────────
+  const [jokerCompleted, setJokerCompleted] = useState(function() {
+    try { return JSON.parse(localStorage.getItem("joker_completed") || "{}"); } catch { return {}; }
+  });
+  const [jokerZero, setJokerZero] = useState(function() {
+    try { return JSON.parse(localStorage.getItem("joker_zero") || "{}"); } catch { return {}; }
+  });
+  const [expandedJoker, setExpandedJoker] = useState(null);
+  const [showZeroModal, setShowZeroModal] = useState(false);
+  const [zeroDraftReasons, setZeroDraftReasons] = useState([]);
+  const [zeroDraftNote, setZeroDraftNote] = useState("");
 
   useEffect(() => { loadCompletions(); }, []);
 
@@ -46,10 +167,8 @@ export default function App() {
     const key = "w" + weekIndex + "-d" + dayIndex;
     const isDone = !!completed[key];
     if (isDone) {
-      // untick directly — no prompt needed
       untick(weekIndex, dayIndex, key);
     } else {
-      // show duration prompt before saving
       setPromptKey(key + "|" + weekIndex + "|" + dayIndex);
       setPromptMinutes("");
     }
@@ -124,12 +243,63 @@ export default function App() {
     }, 0);
   };
 
+  // ─── JOKER HANDLERS ─────────────────────────────────────────────────────────
+  const jKey = (weekIdx, id) => "w" + weekIdx + "-j-" + id;
+
+  const tickJoker = (jokerId, e) => {
+    e.stopPropagation();
+    const k = jKey(activeWeek, jokerId);
+    const joker = JOKER_DAYS.find(function(j) { return j.id === jokerId; });
+    const next = { ...jokerCompleted };
+    if (next[k]) {
+      delete next[k];
+    } else {
+      next[k] = joker.minutesCount;
+    }
+    setJokerCompleted(next);
+    localStorage.setItem("joker_completed", JSON.stringify(next));
+  };
+
+  const openZeroModal = () => {
+    const k = "w" + activeWeek + "-zero";
+    const existing = jokerZero[k];
+    setZeroDraftReasons(existing ? existing.reasons : []);
+    setZeroDraftNote(existing ? existing.note : "");
+    setShowZeroModal(true);
+  };
+
+  const confirmZeroDay = () => {
+    const k = "w" + activeWeek + "-zero";
+    const next = { ...jokerZero, [k]: { reasons: zeroDraftReasons, note: zeroDraftNote.trim() } };
+    setJokerZero(next);
+    localStorage.setItem("joker_zero", JSON.stringify(next));
+    setShowZeroModal(false);
+  };
+
+  const clearZeroDay = () => {
+    const k = "w" + activeWeek + "-zero";
+    const next = { ...jokerZero };
+    delete next[k];
+    setJokerZero(next);
+    localStorage.setItem("joker_zero", JSON.stringify(next));
+    setShowZeroModal(false);
+  };
+
+  const toggleZeroReason = (reason) => {
+    setZeroDraftReasons(function(prev) {
+      return prev.includes(reason) ? prev.filter(function(r) { return r !== reason; }) : [...prev, reason];
+    });
+  };
+
   const accent = weekAccent[activeWeek];
   const week = WEEKS[activeWeek];
   const weekProgress = DAY_ORDER.filter((_, i) => completed["w" + activeWeek + "-d" + i]).length;
   const totalCompleted = Object.keys(completed).length;
   const actualMin = weekActualMinutes(activeWeek);
   const toggleDay = (i) => setExpandedDay(expandedDay === i ? null : i);
+
+  const zeroKey = "w" + activeWeek + "-zero";
+  const zeroDone = !!jokerZero[zeroKey];
 
   if (loading) {
     return (
@@ -172,6 +342,54 @@ export default function App() {
         </div>
       )}
 
+      {/* Zero Day modal */}
+      {showZeroModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={function() { setShowZeroModal(false); }}>
+          <div style={{ background: "#15151e", border: "1px solid #2e2e42", borderRadius: 20, padding: 28, maxWidth: 340, width: "100%" }} onClick={function(e) { e.stopPropagation(); }}>
+            <div style={{ fontSize: 24, textAlign: "center", marginBottom: 6 }}>🌑</div>
+            <h3 style={{ margin: "0 0 4px", fontSize: 16, color: "#f0ede8", textAlign: "center" }}>Zero Day</h3>
+            <p style={{ margin: "0 0 18px", fontSize: 11, color: "#888", textAlign: "center", lineHeight: 1.6 }}>Rest is part of the plan. What's going on?</p>
+
+            <div style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: "#666", marginBottom: 10 }}>Pick all that apply</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 18 }}>
+              {ZERO_REASONS.map(function(reason) {
+                const selected = zeroDraftReasons.includes(reason);
+                return (
+                  <button key={reason} onClick={function() { toggleZeroReason(reason); }}
+                    style={{ padding: "6px 12px", borderRadius: 20, border: "1px solid " + (selected ? JC.pilates : "#2a2a38"), background: selected ? "#1a1030" : "#1a1a24", color: selected ? JC.pilates : "#888", fontSize: 11, cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
+                    {reason}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: "#666", marginBottom: 8 }}>Note (optional)</div>
+            <textarea
+              value={zeroDraftNote}
+              onChange={function(e) { setZeroDraftNote(e.target.value); }}
+              placeholder="Anything you want to remember about today..."
+              rows={2}
+              style={{ width: "100%", background: "#0e0e14", border: "1px solid #2a2a38", borderRadius: 10, padding: "10px 12px", fontSize: 12, color: "#f0ede8", fontFamily: "Georgia, serif", outline: "none", resize: "none", boxSizing: "border-box", marginBottom: 16, lineHeight: 1.5 }}
+            />
+
+            <button onClick={confirmZeroDay}
+              style={{ width: "100%", background: JC.pilates, border: "none", borderRadius: 10, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#111", cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>
+              Log Zero Day
+            </button>
+            {zeroDone && (
+              <button onClick={clearZeroDay}
+                style={{ width: "100%", background: "transparent", border: "1px solid #2a2a38", borderRadius: 10, padding: "10px 0", fontSize: 12, color: "#666", cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>
+                Clear this week's zero day
+              </button>
+            )}
+            <button onClick={function() { setShowZeroModal(false); }}
+              style={{ width: "100%", background: "transparent", border: "none", padding: "8px 0", fontSize: 11, color: "#555", cursor: "pointer", fontFamily: "inherit" }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ background: "#111118", padding: "48px 20px 24px", borderBottom: "1px solid #1e1e2c", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
@@ -191,7 +409,7 @@ export default function App() {
           <div style={{ display: "flex", gap: 6, marginTop: 14, overflowX: "auto", paddingBottom: 4 }}>
             {WEEKS.map(function(w, i) {
               return (
-                <button key={i} onClick={function() { setActiveWeek(i); setExpandedDay(null); }}
+                <button key={i} onClick={function() { setActiveWeek(i); setExpandedDay(null); setExpandedJoker(null); }}
                   style={{ padding: "6px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0, background: activeWeek === i ? weekAccent[i] : "#1a1a24", color: activeWeek === i ? "#111" : "#555", transition: "all 0.2s" }}>
                   {w.deload ? "Wk 4 Deload" : "Wk " + (i + 1) + " — " + w.tag}
                 </button>
@@ -216,7 +434,6 @@ export default function App() {
             <div style={{ fontSize: 9, color: "#777", textTransform: "uppercase", letterSpacing: 1 }}>this week</div>
           </div>
         </div>
-
 
         {/* Actual minutes logged this week */}
         <div style={{ marginTop: 14, background: "#15151e", border: "1px solid #1e1e2c", borderRadius: 12, padding: "12px 14px" }}>
@@ -348,6 +565,122 @@ export default function App() {
             </div>
           );
         })}
+
+        {/* ─── JOKER DAYS ──────────────────────────────────────────────────── */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 12px" }}>
+          <div style={{ flex: 1, height: 1, background: "#1e1e2c" }} />
+          <div style={{ fontSize: 9, letterSpacing: 2.5, textTransform: "uppercase", color: "#555", whiteSpace: "nowrap" }}>🃏 Joker Days</div>
+          <div style={{ flex: 1, height: 1, background: "#1e1e2c" }} />
+        </div>
+        <div style={{ fontSize: 10, color: "#555", marginBottom: 12, lineHeight: 1.5 }}>
+          Can't do your scheduled session? Pick one of these instead.
+        </div>
+
+        {/* Joker workout cards */}
+        {JOKER_DAYS.map(function(joker) {
+          const k = jKey(activeWeek, joker.id);
+          const isDone = !!jokerCompleted[k];
+          const isExp = expandedJoker === joker.id;
+
+          return (
+            <div key={joker.id} onClick={function() { setExpandedJoker(isExp ? null : joker.id); }}
+              style={{ marginBottom: 8, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: isDone ? "#0c1a14" : "#15151e", border: "1px solid " + (isDone ? joker.color + "40" : isExp ? "#2e2e42" : "#1e1e2c"), boxShadow: isExp ? "0 8px 32px rgba(0,0,0,0.5)" : "none", transition: "all 0.2s" }}>
+
+              <div style={{ padding: "13px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+                <div onClick={function(e) { tickJoker(joker.id, e); }}
+                  style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, cursor: "pointer", border: "2px solid " + (isDone ? joker.color : "#2a2a38"), background: isDone ? joker.color + "30" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s" }}>
+                  {isDone && <span style={{ color: joker.color, fontSize: 12, fontWeight: 900 }}>✓</span>}
+                </div>
+
+                <div style={{ fontSize: 24, flexShrink: 0, width: 44, textAlign: "center" }}>{joker.icon}</div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: isDone ? joker.color : "#f0ede8" }}>{joker.title}</span>
+                    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", padding: "2px 8px", borderRadius: 6, background: joker.color + "18", color: joker.color }}>joker</span>
+                    <span style={{ fontSize: 10, color: "#888" }}>{joker.duration}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: isDone ? joker.color + "99" : "#666", marginTop: 3 }}>{joker.tagline}</div>
+                  {isDone && (
+                    <div style={{ fontSize: 10, color: joker.color + "88", marginTop: 3 }}>Logged: {joker.minutesCount} min</div>
+                  )}
+                </div>
+
+                <div style={{ color: "#333", transform: isExp ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.2s", fontSize: 14 }}>▼</div>
+              </div>
+
+              {isExp && (
+                <div style={{ padding: "0 16px 16px", borderTop: "1px solid #1e1e2c" }}>
+                  {joker.sections.map(function(section, si) {
+                    return (
+                      <div key={si} style={{ marginBottom: 14, marginTop: si === 0 ? 12 : 0 }}>
+                        <div style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: "#666", fontWeight: 600, marginBottom: 7 }}>
+                          {section.name}
+                        </div>
+                        {section.note && (
+                          <div style={{ fontSize: 10, color: "#888", fontStyle: "italic", marginBottom: 6, paddingLeft: 4 }}>{section.note}</div>
+                        )}
+                        {section.exercises.map(function(ex, ei) {
+                          return (
+                            <div key={ei} style={{ marginBottom: 6, padding: "8px 10px", background: "#0e0e14", borderRadius: 8, borderLeft: "3px solid " + joker.color + "40" }}>
+                              <div
+                                onClick={function(e) {
+                                  e.stopPropagation();
+                                  window.open("youtube://www.youtube.com/results?search_query=" + encodeURIComponent(ex.name + " exercise tutorial form"), "_blank");
+                                }}
+                                style={{ fontSize: 12, color: joker.color, fontWeight: 600, cursor: "pointer", textDecoration: "underline dotted", textUnderlineOffset: 3 }}>
+                                {ex.name} ↗
+                              </div>
+                              {ex.detail && <div style={{ fontSize: 11, color: "#888", marginTop: 3, lineHeight: 1.5 }}>{ex.detail}</div>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Zero Day card */}
+        {(function() {
+          const zeroData = jokerZero[zeroKey];
+          return (
+            <div onClick={openZeroModal}
+              style={{ marginBottom: 8, borderRadius: 14, overflow: "hidden", cursor: "pointer", background: zeroDone ? "#0f0c1a" : "#15151e", border: "1px solid " + (zeroDone ? "#3a2a5050" : "#1e1e2c"), transition: "all 0.2s" }}>
+              <div style={{ padding: "13px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, border: "2px solid " + (zeroDone ? JC.pilates : "#2a2a38"), background: zeroDone ? JC.pilates + "30" : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {zeroDone && <span style={{ color: JC.pilates, fontSize: 12, fontWeight: 900 }}>✓</span>}
+                </div>
+
+                <div style={{ fontSize: 24, flexShrink: 0, width: 44, textAlign: "center" }}>🌑</div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: zeroDone ? JC.pilates : "#f0ede8" }}>Zero Day</span>
+                    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", padding: "2px 8px", borderRadius: 6, background: "#1a1030", color: JC.pilates }}>rest</span>
+                  </div>
+                  {zeroDone && zeroData && zeroData.reasons.length > 0 ? (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                      {zeroData.reasons.map(function(r) {
+                        return <span key={r} style={{ fontSize: 9, background: "#1a1030", border: "1px solid " + JC.pilates + "30", borderRadius: 10, padding: "2px 7px", color: JC.pilates + "99" }}>{r}</span>;
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: "#555", marginTop: 3 }}>Honest rest — log your reason, no guilt</div>
+                  )}
+                  {zeroDone && zeroData && zeroData.note ? (
+                    <div style={{ fontSize: 10, color: JC.pilates + "66", marginTop: 4, fontStyle: "italic" }}>{zeroData.note}</div>
+                  ) : null}
+                </div>
+
+                <div style={{ fontSize: 14, color: "#444" }}>✎</div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <style>{"@keyframes spin { to { transform: rotate(360deg); } } * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; } body { margin: 0; padding: 0; }"}</style>
