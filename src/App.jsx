@@ -483,7 +483,7 @@ export default function App() {
           </div>
           <div style={{ textAlign: "right", flexShrink: 0 }}>
             <span style={{ fontSize: 20, fontWeight: 700, color: accent }}>{weekProgress}</span>
-            <span style={{ fontSize: 12, color: "#777" }}>/7</span>
+            <span style={{ fontSize: 12, color: "#777" }}>/{DAY_ORDER.filter(d => SESSIONS[d].type !== 'rest').length}</span>
             <div style={{ fontSize: 9, color: "#777", textTransform: "uppercase", letterSpacing: 1 }}>this week</div>
           </div>
         </div>
