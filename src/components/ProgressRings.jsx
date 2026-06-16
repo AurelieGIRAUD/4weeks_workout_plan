@@ -1,4 +1,4 @@
-import { WEEKS, DAY_ORDER, weekAccent } from '../lib/workoutData';
+import { WEEKS, DAY_ORDER, SESSIONS, weekAccent } from '../lib/workoutData';
 
 function Ring({ weekNum, accent, done, total }) {
   const r = 24;
@@ -28,6 +28,7 @@ function Ring({ weekNum, accent, done, total }) {
 }
 
 export default function ProgressRings({ completed }) {
+  const trainingTotal = DAY_ORDER.filter(d => SESSIONS[d]?.type !== 'rest').length;
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", padding: "14px 20px 0" }}>
       <div style={{ background: "#15151e", border: "1px solid #1e1e2c", borderRadius: 14, padding: "14px 16px" }}>
@@ -36,16 +37,15 @@ export default function ProgressRings({ completed }) {
         </div>
         <div style={{ display: "flex", gap: 8, justifyContent: "space-between" }}>
           {WEEKS.map((w, i) => {
-            const total = DAY_ORDER.length;
-            const done = DAY_ORDER.filter((_, di) => completed[`w${i}-d${di}`]).length;
-            return <Ring key={i} weekNum={i + 1} accent={weekAccent[i]} done={done} total={total} />;
+            const done = DAY_ORDER.filter((d, di) => SESSIONS[d]?.type !== 'rest' && completed[`w${i}-d${di}`]).length;
+            return <Ring key={i} weekNum={i + 1} accent={weekAccent[i]} done={done} total={trainingTotal} />;
           })}
         </div>
         <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #1e1e2c", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ fontSize: 11, color: "#888" }}>Total sessions</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#e8c547" }}>
             {Object.keys(completed).length}
-            <span style={{ color: "#777", fontWeight: 400 }}> / 28</span>
+            <span style={{ color: "#777", fontWeight: 400 }}> / {WEEKS.length * trainingTotal}</span>
           </div>
         </div>
       </div>
