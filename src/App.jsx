@@ -161,13 +161,16 @@ export default function App() {
       if (error) throw error;
       const cMap = {};
       const mMap = {};
+      let maxWeekIndex = 0;
       data.forEach(({ week_number, day_index, duration_minutes }) => {
         const k = "w" + (week_number - 1) + "-d" + day_index;
         cMap[k] = true;
         mMap[k] = duration_minutes || 0;
+        if (week_number - 1 > maxWeekIndex) maxWeekIndex = week_number - 1;
       });
       setCompleted(cMap);
       setMinutes(mMap);
+      setActiveWeek(maxWeekIndex);
     } catch (err) {
       console.error("Error loading completions:", err);
     } finally {
