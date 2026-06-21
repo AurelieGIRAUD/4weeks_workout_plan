@@ -325,11 +325,15 @@ export default function App() {
     return regularMins + jokerMins;
   };
 
+  const weekJokerCount = (weekIdx) => JOKER_DAYS.reduce(function(sum, joker) {
+    return sum + (jokerLogs[jlKey(weekIdx, joker.id)] || []).length;
+  }, 0);
+
   const accent = weekAccent[activeWeek];
   const week = WEEKS[activeWeek];
-  // weekProgress intentionally excludes rest days — completed only has training sessions
-  const weekProgress = DAY_ORDER.filter(function(_, i) { return completed["w" + activeWeek + "-d" + i]; }).length;
-  const totalCompleted = Object.keys(completed).length;
+  const weekProgress = DAY_ORDER.filter(function(_, i) { return completed["w" + activeWeek + "-d" + i]; }).length + weekJokerCount(activeWeek);
+  const totalJokerCompleted = WEEKS.reduce(function(sum, _, i) { return sum + weekJokerCount(i); }, 0);
+  const totalCompleted = Object.keys(completed).length + totalJokerCompleted;
   const actualMin = weekActualMinutes(activeWeek);
   const toggleDay = (i) => setExpandedDay(expandedDay === i ? null : i);
 
@@ -475,7 +479,7 @@ export default function App() {
         </div>
       </div>
 
-      <ProgressRings completed={completed} />
+      <ProgressRings completed={completed} jokerCountsByWeek={WEEKS.map(function(_, i) { return weekJokerCount(i); })} />
 
       {/* Week header + active minutes */}
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "16px 20px 0" }}>
