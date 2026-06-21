@@ -133,6 +133,7 @@ export default function App() {
   // Joker workout duration prompt
   const [jokerPromptId, setJokerPromptId] = useState(null);
   const [jokerPromptMinutes, setJokerPromptMinutes] = useState("");
+  const [jokerEditIdx, setJokerEditIdx] = useState(null); // null = new entry, number = editing entry at that index
 
   // ─── JOKER STATE (unified log array model) ──────────────────────────────────
   // jokerLogs: { "0_mobility": [{minutes, ts}, ...], "0_zero": [{reasons, note, ts}, ...] }
@@ -267,27 +268,58 @@ export default function App() {
     e.stopPropagation();
     setJokerPromptId(jokerId);
     setJokerPromptMinutes("");
+    setJokerEditIdx(null);
+  };
+
+  const openJokerEdit = (jokerId, idx, currentMins, e) => {
+    e.stopPropagation();
+    setJokerPromptId(jokerId);
+    setJokerPromptMinutes(currentMins > 0 ? String(currentMins) : "");
+    setJokerEditIdx(idx);
   };
 
   const confirmJokerPrompt = () => {
     if (!jokerPromptId) return;
     const k = jlKey(activeWeek, jokerPromptId);
     const mins = parseInt(jokerPromptMinutes) || 0;
-    const entry = { minutes: mins, ts: new Date().toISOString() };
-    const next = { ...jokerLogs, [k]: [...(jokerLogs[k] || []), entry] };
+    const existing = jokerLogs[k] || [];
+    let arr;
+    if (jokerEditIdx !== null) {
+      arr = existing.map(function(e, i) { return i === jokerEditIdx ? { ...e, minutes: mins } : e; });
+    } else {
+      arr = [...existing, { minutes: mins, ts: new Date().toISOString() }];
+    }
+    const next = { ...jokerLogs, [k]: arr };
     setJokerLogs(next);
     localStorage.setItem("joker_logs", JSON.stringify(next));
     setJokerPromptId(null);
+    setJokerEditIdx(null);
   };
 
   const skipJokerPrompt = () => {
     if (!jokerPromptId) return;
+    if (jokerEditIdx !== null) {
+      // Cancel edit — close without saving
+      setJokerPromptId(null);
+      setJokerEditIdx(null);
+      return;
+    }
     const k = jlKey(activeWeek, jokerPromptId);
     const entry = { minutes: 0, ts: new Date().toISOString() };
     const next = { ...jokerLogs, [k]: [...(jokerLogs[k] || []), entry] };
     setJokerLogs(next);
     localStorage.setItem("joker_logs", JSON.stringify(next));
     setJokerPromptId(null);
+  };
+
+  const deleteJokerEntry = (jokerId, idx, e) => {
+    e.stopPropagation();
+    const k = jlKey(activeWeek, jokerId);
+    const arr = (jokerLogs[k] || []).filter(function(_, i) { return i !== idx; });
+    const next = { ...jokerLogs };
+    if (arr.length === 0) { delete next[k]; } else { next[k] = arr; }
+    setJokerLogs(next);
+    localStorage.setItem("joker_logs", JSON.stringify(next));
   };
 
   // ─── ZERO DAY HANDLERS ──────────────────────────────────────────────────────
@@ -384,7 +416,7 @@ export default function App() {
               return (
                 <>
                   <div style={{ fontSize: 22, textAlign: "center", marginBottom: 8 }}>{joker ? joker.icon : "🃏"}</div>
-                  <h3 style={{ margin: "0 0 6px", fontSize: 16, color: "#f0ede8", textAlign: "center" }}>Nice work!</h3>
+                  <h3 style={{ margin: "0 0 6px", fontSize: 16, color: "#f0ede8", textAlign: "center" }}>{jokerEditIdx !== null ? "Edit session" : "Nice work!"}</h3>
                   <p style={{ margin: "0 0 6px", fontSize: 13, color: joker ? joker.color : accent, textAlign: "center", fontWeight: 600 }}>{joker ? joker.title : ""}</p>
                   <p style={{ margin: "0 0 20px", fontSize: 12, color: "#999", textAlign: "center", lineHeight: 1.6 }}>How long did this take?</p>
                 </>
@@ -398,11 +430,11 @@ export default function App() {
             />
             <button onClick={confirmJokerPrompt}
               style={{ width: "100%", background: (JOKER_DAYS.find(function(j) { return j.id === jokerPromptId; }) || {}).color || accent, border: "none", borderRadius: 10, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#111", cursor: "pointer", fontFamily: "inherit", marginBottom: 8 }}>
-              Log it
+              {jokerEditIdx !== null ? "Save changes" : "Log it"}
             </button>
             <button onClick={skipJokerPrompt}
               style={{ width: "100%", background: "transparent", border: "1px solid #2a2a38", borderRadius: 10, padding: "10px 0", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "inherit" }}>
-              Skip — just mark as done
+              {jokerEditIdx !== null ? "Cancel" : "Skip — just mark as done"}
             </button>
           </div>
         </div>
@@ -721,6 +753,29 @@ export default function App() {
                       </div>
                     );
                   })}
+                  {/* Logged session history with edit / delete */}
+                  {count > 0 && (
+                    <div style={{ marginTop: 14, marginBottom: 4 }}>
+                      <div style={{ fontSize: 9, letterSpacing: 2, textTransform: "uppercase", color: "#555", marginBottom: 6 }}>Logged sessions</div>
+                      {entries.map(function(entry, idx) {
+                        return (
+                          <div key={idx} onClick={function(e) { e.stopPropagation(); }}
+                            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "#0e0e14", borderRadius: 8, marginBottom: 4, borderLeft: "3px solid " + joker.color + "30" }}>
+                            <span style={{ flex: 1, fontSize: 11, color: "#aaa" }}>
+                              Session {idx + 1}{entry.minutes > 0 ? " — " + entry.minutes + " min" : ""}
+                            </span>
+                            <button onClick={function(e) { openJokerEdit(joker.id, idx, entry.minutes, e); }}
+                              title="Edit"
+                              style={{ background: "none", border: "none", cursor: "pointer", color: joker.color + "99", fontSize: 13, padding: "2px 5px", lineHeight: 1 }}>✎</button>
+                            <button onClick={function(e) { deleteJokerEntry(joker.id, idx, e); }}
+                              title="Delete"
+                              style={{ background: "none", border: "none", cursor: "pointer", color: "#ff5555", fontSize: 13, padding: "2px 5px", lineHeight: 1 }}>✕</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Mark Complete button — opens duration modal */}
                   <button
                     onClick={function(e) { openJokerPrompt(joker.id, e); }}
