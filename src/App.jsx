@@ -130,6 +130,13 @@ export default function App() {
   const [promptKey, setPromptKey] = useState(null);
   const [promptMinutes, setPromptMinutes] = useState("");
 
+  // Weight tracking
+  const [weekWeights, setWeekWeights] = useState({});
+  const [showWeightModal, setShowWeightModal] = useState(false);
+  const [weightInput, setWeightInput] = useState("");
+  const [weightSaving, setWeightSaving] = useState(false);
+  const [weightModalWeek, setWeightModalWeek] = useState(null);
+
   // Joker workout duration prompt
   const [jokerPromptId, setJokerPromptId] = useState(null);
   const [jokerPromptMinutes, setJokerPromptMinutes] = useState("");
@@ -152,6 +159,22 @@ export default function App() {
   });
 
   useEffect(() => { loadCompletions(); }, []);
+
+  useEffect(() => {
+    async function loadWeights() {
+      const { data, error } = await supabase
+        .from("weekly_weights")
+        .select("week_index, weight_kg")
+        .order("logged_at", { ascending: false });
+      if (error) { console.error("loadWeights:", error); return; }
+      const map = {};
+      data.forEach(function(row) {
+        if (map[row.week_index] === undefined) map[row.week_index] = String(row.weight_kg);
+      });
+      setWeekWeights(map);
+    }
+    loadWeights();
+  }, []);
 
   const loadCompletions = async () => {
     setLoading(true);
@@ -221,8 +244,15 @@ export default function App() {
         .from("workout_completions")
         .insert({ week_number: weekIndex + 1, day_index: dayIndex, duration_minutes: mins });
       if (error) throw error;
-      setCompleted(p => ({ ...p, [key]: true }));
+      const newCompleted = { ...completed, [key]: true };
+      setCompleted(newCompleted);
       setMinutes(p => ({ ...p, [key]: mins }));
+      const weekKeys = Object.keys(newCompleted).filter(function(k) { return k.startsWith("w" + weekIndex + "-d"); });
+      if (weekKeys.length === 1 && weekWeights[weekIndex] === undefined) {
+        setWeightInput("");
+        setWeightModalWeek(weekIndex);
+        setShowWeightModal(true);
+      }
     } catch (err) {
       console.error("Error saving:", err);
       alert("Could not save — check your connection and try again.");
@@ -244,13 +274,37 @@ export default function App() {
         .from("workout_completions")
         .insert({ week_number: weekIndex + 1, day_index: dayIndex, duration_minutes: 0 });
       if (error) throw error;
-      setCompleted(p => ({ ...p, [key]: true }));
+      const newCompleted = { ...completed, [key]: true };
+      setCompleted(newCompleted);
       setMinutes(p => ({ ...p, [key]: 0 }));
+      const weekKeys = Object.keys(newCompleted).filter(function(k) { return k.startsWith("w" + weekIndex + "-d"); });
+      if (weekKeys.length === 1 && weekWeights[weekIndex] === undefined) {
+        setWeightInput("");
+        setWeightModalWeek(weekIndex);
+        setShowWeightModal(true);
+      }
     } catch (err) {
       console.error("Error saving:", err);
     } finally {
       setSaving(null);
     }
+  };
+
+  const saveWeight = async () => {
+    const kg = parseFloat(weightInput);
+    if (isNaN(kg)) return;
+    setWeightSaving(true);
+    const wk = weightModalWeek ?? activeWeek;
+    const { error } = await supabase
+      .from("weekly_weights")
+      .insert({ week_index: wk, weight_kg: kg });
+    if (!error) {
+      setWeekWeights(function(prev) { return { ...prev, [wk]: String(kg) }; });
+    } else {
+      console.error("saveWeight:", error);
+    }
+    setWeightSaving(false);
+    setShowWeightModal(false);
   };
 
   // ─── SUNDAY REST HANDLER ────────────────────────────────────────────────────
@@ -482,6 +536,38 @@ export default function App() {
         </div>
       )}
 
+      {/* Weight modal */}
+      {showWeightModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ background: "#15151e", border: "1px solid #2e2e42", borderRadius: 20, padding: 28, maxWidth: 320, width: "100%" }}>
+            <div style={{ fontSize: 22, textAlign: "center", marginBottom: 8 }}>⚖️</div>
+            <h3 style={{ margin: "0 0 6px", fontSize: 16, color: "#f0ede8", textAlign: "center" }}>Log your weight</h3>
+            <p style={{ margin: "0 0 20px", fontSize: 12, color: "#999", textAlign: "center", lineHeight: 1.6 }}>
+              Week {(weightModalWeek ?? activeWeek) + 1} — tracking your weight each week helps you see progress over the programme.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <input
+                type="number" step="0.1" min="30" max="250"
+                value={weightInput}
+                onChange={function(e) { setWeightInput(e.target.value); }}
+                onKeyDown={function(e) { if (e.key === "Enter") saveWeight(); }}
+                placeholder="e.g. 68.5" autoFocus
+                style={{ flex: 1, background: "#0e0e14", border: "1px solid #2a2a38", borderRadius: 10, padding: "12px 14px", fontSize: 20, color: "#f0ede8", textAlign: "center", fontFamily: "Georgia, serif", outline: "none" }}
+              />
+              <span style={{ fontSize: 14, color: "#888" }}>kg</span>
+            </div>
+            <button onClick={saveWeight} disabled={weightSaving || !weightInput || isNaN(parseFloat(weightInput))}
+              style={{ width: "100%", background: weekAccent[weightModalWeek ?? activeWeek], border: "none", borderRadius: 10, padding: "12px 0", fontSize: 14, fontWeight: 700, color: "#111", cursor: "pointer", fontFamily: "inherit", marginBottom: 8, opacity: (!weightInput || isNaN(parseFloat(weightInput))) ? 0.5 : 1 }}>
+              {weightSaving ? "Saving…" : "Save weight"}
+            </button>
+            <button onClick={function() { setShowWeightModal(false); }}
+              style={{ width: "100%", background: "transparent", border: "1px solid #2a2a38", borderRadius: 10, padding: "10px 0", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "inherit" }}>
+              Skip for now
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ background: "#111118", padding: "48px 20px 24px", borderBottom: "1px solid #1e1e2c", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
@@ -547,6 +633,40 @@ export default function App() {
               : (150 - actualMin) + " min to reach the 150-min weekly target"}
           </div>
         </div>
+
+        {/* Weight strip */}
+        {(function() {
+          const current = weekWeights[activeWeek];
+          const prev = weekWeights[activeWeek - 1];
+          const delta = current && prev ? (parseFloat(current) - parseFloat(prev)).toFixed(1) : null;
+          return (
+            <div style={{ marginTop: 10, background: "#15151e", border: "1px solid #1e1e2c", borderRadius: 12, padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 18 }}>⚖️</span>
+                <div>
+                  <div style={{ fontSize: 9, color: "#888", textTransform: "uppercase", letterSpacing: 1, marginBottom: 2 }}>Week {activeWeek + 1} weight</div>
+                  {current ? (
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: "#f0ede8" }}>{parseFloat(current).toFixed(1)}</span>
+                      <span style={{ fontSize: 11, color: "#888" }}>kg</span>
+                      {delta !== null && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: parseFloat(delta) <= 0 ? "#34D399" : "#FF9A3C" }}>
+                          {parseFloat(delta) <= 0 ? "▼" : "▲"} {Math.abs(parseFloat(delta)).toFixed(1)} kg vs last week
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 11, color: "#555" }}>Not logged yet</div>
+                  )}
+                </div>
+              </div>
+              <button onClick={function() { setWeightInput(current || ""); setWeightModalWeek(activeWeek); setShowWeightModal(true); }}
+                style={{ fontSize: 11, color: accent, background: "transparent", border: "1px solid " + accent + "40", borderRadius: 8, padding: "4px 10px", cursor: "pointer", fontFamily: "inherit" }}>
+                {current ? "Edit" : "Log"}
+              </button>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Day cards */}
