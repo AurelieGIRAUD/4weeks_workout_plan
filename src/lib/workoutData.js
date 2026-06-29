@@ -202,19 +202,30 @@ export const SESSIONS = {
       },
       {
         duration: "30 min", minutesCount: 30,
-        supersetNote: "Deload: 2 sets max. Easy tempo. No failure.",
+        supersetNote: "Deload: 2 sets max. Easy tempo. No failure. Rest fully between sets — 60–75 sec minimum.",
         sections: [
-          { name: "Activation", exercises: [
-            { name: "Banded clamshells", detail: "1×12/side" },
+          { name: "Warm-Up (3 min)", note: "Don't skip — even on deload, joints need priming.", exercises: [
+            { name: "Banded clamshells", detail: "1×10/side · slow, feel the glute" },
+            { name: "Glute bridge hold", detail: "1×8 · bodyweight · 2-sec squeeze at top" },
+            { name: "Hip circle (standing)", detail: "1×8/direction · loosen the hip joint" },
           ]},
-          { name: "Reduced Volume", exercises: [
-            { name: "KB Romanian Deadlift", detail: "2×10 · light weight · feel the muscle, not the load" },
-            { name: "Banded Floor Hip Thrust", detail: "2×12 · moderate band" },
-            { name: "Lateral band walk", detail: "2×12 steps/side" },
-            { name: "Dead bug", detail: "2×6/side" },
+          { name: "Block A — Hip Hinge", note: "REST 60 sec between sets.", exercises: [
+            { name: "KB Romanian Deadlift", detail: "2×10 · light weight · 3-sec eccentric · feel the stretch, not the load" },
+          ]},
+          { name: "Block B — Hip Thrust + Lateral", note: "Do lateral walk immediately after each hip thrust set, then REST 60 sec.", exercises: [
+            { name: "Banded Floor Hip Thrust", detail: "2×12 · moderate band · 1-sec hold at top" },
+            { name: "Lateral band walk", detail: "2×15 steps/side · right after each hip thrust set" },
+          ]},
+          { name: "Block C — Isolation", note: "REST 45 sec between sets.", exercises: [
+            { name: "Side-lying hip abduction", detail: "2×12/side · no band · slow arc · squeeze at top" },
+            { name: "Donkey kickback (banded)", detail: "2×10/side · controlled — quality over speed" },
+          ]},
+          { name: "Core", exercises: [
+            { name: "Dead bug", detail: "2×6/side · very controlled · exhale on extension" },
           ]},
           { name: "Cool-Down", exercises: [
-            { name: "Pigeon pose", detail: "60 sec / side" },
+            { name: "Pigeon pose", detail: "75 sec / side" },
+            { name: "Supine figure-4", detail: "45 sec / side" },
           ]},
         ],
       },
@@ -313,17 +324,28 @@ export const SESSIONS = {
         ],
       },
       {
-        duration: "25 min", minutesCount: 25,
-        supersetNote: "Deload: 2 sets max. Light resistance only.",
+        duration: "30 min", minutesCount: 30,
+        supersetNote: "Deload: 2 sets max. Light resistance only. REST 60 sec between sets — use the time, don't rush.",
         sections: [
-          { name: "Reduced Volume", exercises: [
-            { name: "KB Floor Press", detail: "2×10 · light" },
-            { name: "Band Bicep Curl", detail: "2×12 · light" },
-            { name: "Band Tricep Extension", detail: "2×12" },
-            { name: "Band Face Pull", detail: "2×15" },
+          { name: "Warm-Up (3 min)", note: "Shoulders need this even on a deload — don't skip.", exercises: [
+            { name: "Arm circles fwd + back", detail: "1×10 each direction · slow" },
+            { name: "Band pull-apart", detail: "1×12 · horizontal · wake up the rear delts" },
+            { name: "Band external rotation", detail: "1×10/side · elbow at side · rotator cuff prep" },
+          ]},
+          { name: "Block A — Push + Pull", note: "REST 60 sec between sets.", exercises: [
+            { name: "KB Floor Press", detail: "2×10 · light · elbows 45°· controlled" },
+            { name: "Band Bent-over Row", detail: "2×12 · hinge · squeeze shoulder blades" },
+          ]},
+          { name: "Block B — Arms", note: "REST 45 sec between sets.", exercises: [
+            { name: "Band Bicep Curl", detail: "2×12 · light · 2-sec up, 2-sec down" },
+            { name: "Band Tricep Extension", detail: "2×12 · stand on band · elbows in" },
+          ]},
+          { name: "Shoulder Finisher", exercises: [
+            { name: "Band Face Pull", detail: "2×15 · elbows high · posture reset" },
           ]},
           { name: "Cool-Down", exercises: [
-            { name: "Full shoulder mobility", detail: "2 min" },
+            { name: "Cross-body shoulder stretch", detail: "45 sec / side" },
+            { name: "Full shoulder mobility sequence", detail: "90 sec · circles, chest opener, tricep stretch" },
           ]},
         ],
       },
@@ -575,16 +597,27 @@ export const SESSIONS = {
       },
       {
         duration: "30 min", minutesCount: 30,
-        supersetNote: "Deload: 2 sets max, no failure, light load.",
+        supersetNote: "Deload: 2 sets max, no failure, light load. REST 60 sec between sets — pace yourself deliberately.",
         sections: [
-          { name: "Light Full-Body Movement", exercises: [
-            { name: "Banded goblet squat", detail: "2×10 · light" },
-            { name: "KB side lunge", detail: "2×8/side · bodyweight if needed" },
-            { name: "Band hip abduction", detail: "2×12/side" },
-            { name: "Band push + pull (1 set each)", detail: "2×10 each" },
+          { name: "Warm-Up (3 min)", note: "Joints need priming even at deload intensity.", exercises: [
+            { name: "Banded lateral shuffle (slow)", detail: "1×10 steps/side · low and controlled" },
+            { name: "World's greatest stretch", detail: "1×4/side · full-body mobilisation" },
+          ]},
+          { name: "Block A — Lower Body", note: "REST 60 sec between sets.", exercises: [
+            { name: "Banded goblet squat", detail: "2×10 · light KB · band above knees, push out" },
+            { name: "KB side lunge", detail: "2×8/side · bodyweight if needed · sit into the hip" },
+          ]},
+          { name: "Block B — Glute Medius", note: "REST 45 sec between sets.", exercises: [
+            { name: "Band hip abduction (standing)", detail: "2×12/side · slight forward lean · controlled arc" },
+            { name: "Lateral band walk", detail: "2×12 steps/side · stay low · glute medius burn" },
+          ]},
+          { name: "Block C — Upper Body", note: "REST 60 sec between sets.", exercises: [
+            { name: "Band push-up hold", detail: "2×8 · pause 1 sec at bottom · band across back optional" },
+            { name: "Band bent-over row", detail: "2×10 · hinge · squeeze shoulder blades at top" },
           ]},
           { name: "Cool-Down", exercises: [
-            { name: "Pigeon + spinal twist", detail: "90 sec / side" },
+            { name: "Pigeon pose", detail: "90 sec / side" },
+            { name: "Seated spinal twist", detail: "45 sec / side" },
           ]},
         ],
       },
