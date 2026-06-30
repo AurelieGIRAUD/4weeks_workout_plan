@@ -432,19 +432,33 @@ export const SESSIONS = {
         ],
       },
       {
-        duration: "30 min", minutesCount: 30,
+        duration: "35 min", minutesCount: 35,
         sections: [
-          { name: "Gentle Pilates Flow", note: "Deload week — feel good, no pushing, pure movement quality.", exercises: [
-            { name: "Dead bug", detail: "2×6/side · very controlled" },
-            { name: "Hundred (modified)", detail: "1×30 counts" },
-            { name: "Side-lying leg series", detail: "1 set / side — gentle" },
+          { name: "Core Foundation", note: "Deload — same movements, half the volume.", exercises: [
+            { name: "Dead bug (full)", detail: "2×10/side · very controlled" },
+            { name: "Plank to downdog", detail: "2×8 · slow and deliberate" },
+            { name: "Side plank + hip dip", detail: "2×8/side · controlled" },
           ]},
-          { name: "Easy Band Arms", exercises: [
-            { name: "Band bicep curl", detail: "2×10 · light" },
-            { name: "Band face pull", detail: "2×12" },
+          { name: "Yoga Flow", note: "Hold and breathe — no reps, no rushing.", exercises: [
+            { name: "Cat-cow", detail: "8 slow breaths · spine warm-up" },
+            { name: "Low lunge + twist", detail: "45 sec/side · hip flexor + thoracic opening" },
+            { name: "Downward dog → child's pose", detail: "5 slow cycles · full spine decompression" },
+            { name: "Supine spinal twist", detail: "60 sec/side · lower back release" },
+          ]},
+          { name: "Yoga Core Circuit", note: "Time-based — breathe through each hold.", exercises: [
+            { name: "Boat pose (Navasana)", detail: "3×20 sec · knees bent if needed · exhale to engage" },
+            { name: "Warrior III", detail: "30 sec/side · standing balance + full posterior chain" },
+            { name: "Low plank hold (forearm)", detail: "2×25 sec · breathe, don't brace and hold" },
+            { name: "Locust pose", detail: "3×10 sec hold · back extensors + posterior core" },
+          ]},
+          { name: "Band Arm Circuit", exercises: [
+            { name: "Band curl + press (combo)", detail: "2×10 · light, slow tempo" },
+            { name: "Band tricep overhead extension", detail: "2×12 · elbows in" },
+            { name: "Band chest fly", detail: "2×12" },
           ]},
           { name: "Cool-Down", exercises: [
-            { name: "Child's pose + cat-cow", detail: "3 min total" },
+            { name: "Full spine stretch sequence", detail: "2 min" },
+            { name: "Savasana", detail: "2 min · breathe · recover" },
           ]},
         ],
       },
