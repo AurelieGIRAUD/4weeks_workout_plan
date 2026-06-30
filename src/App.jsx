@@ -5,6 +5,7 @@ import {
   MUSCLE_IMAGES, SESSION_IMAGE
 } from "./lib/workoutData";
 import ProgressRings from "./components/ProgressRings";
+import WeightChart from "./components/WeightChart";
 
 // ─── JOKER COLORS ─────────────────────────────────────────────────────────────
 const JC = {
@@ -578,10 +579,6 @@ export default function App() {
               </div>
               <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>My 4-weeks Workout Plan</h1>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: "#e8c547" }}>{totalCompleted}</div>
-              <div style={{ fontSize: 9, color: "#888", textTransform: "uppercase", letterSpacing: 1 }}>total done</div>
-            </div>
           </div>
 
           <div style={{ display: "flex", gap: 6, marginTop: 14, overflowX: "auto", paddingBottom: 4 }}>
@@ -598,6 +595,8 @@ export default function App() {
       </div>
 
       <ProgressRings completed={completed} jokerCountsByWeek={WEEKS.map(function(_, i) { return weekJokerCount(i); })} />
+
+      <WeightChart weekWeights={weekWeights} />
 
       {/* Week header + active minutes */}
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "16px 20px 0" }}>
