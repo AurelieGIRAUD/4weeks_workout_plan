@@ -61,7 +61,7 @@ export default function Layout() {
       <div className="min-w-0 flex-1">
         {!online && (
           <div className="pt-safe sticky top-0 z-40 flex items-center justify-center gap-2 bg-amber-400 px-4 py-1.5 text-sm font-semibold text-amber-950">
-            <WifiOff className="size-4" aria-hidden /> Offline: showing saved data. Changes need a connection.
+            <WifiOff className="size-4" aria-hidden /> Offline: showing saved data. Edits are sent when you're back online.
           </div>
         )}
         <main className={cx('pb-nav mx-auto w-full max-w-5xl px-4 pt-4 sm:px-6 md:pt-8', online && 'pt-safe')}>

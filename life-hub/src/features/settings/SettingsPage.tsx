@@ -1,9 +1,12 @@
 import { LogOut, Monitor, Moon, Sun } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthProvider'
 import { Button, Card, Chip, ErrorNote, Field, inputClass, PageHeader } from '@/components/ui'
 import { useProfile, useUpdateProfile } from '@/lib/profile'
 import { useTheme, type ThemeChoice } from '@/lib/theme'
+import { DataCard } from './DataCard'
+import { InstallCard } from './InstallCard'
 import { NotificationsCard } from './NotificationsCard'
 
 const THEMES: { value: ThemeChoice; label: string; icon: typeof Sun }[] = [
@@ -21,10 +24,16 @@ export default function SettingsPage() {
 
   useEffect(() => setName(profile?.display_name ?? ''), [profile?.display_name])
 
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [hash])
+
   return (
     <>
       <PageHeader module="settings" title="Settings" subtitle={profile?.email} />
       <div className="grid gap-4 lg:grid-cols-2">
+        <InstallCard />
         <Card>
           <h2 className="mb-3 text-lg font-extrabold">Profile</h2>
           <form
@@ -56,6 +65,8 @@ export default function SettingsPage() {
             ))}
           </div>
         </Card>
+
+        <DataCard />
 
         <Card>
           <h2 className="mb-3 text-lg font-extrabold">Account</h2>

@@ -10,16 +10,18 @@ export function ItemRow({
   onToggle,
   onOpen,
   listName,
+  showDate,
 }: {
   item: ListItem
   type: ListType
   onToggle: (done: boolean) => void
   onOpen: () => void
   listName?: string
+  showDate?: boolean
 }) {
   const meta = LIST_TYPES[type]
   return (
-    <li className="animate-rise group flex items-start gap-3 rounded-2xl px-2 py-2 transition hover:bg-card-2">
+    <li className="animate-rise flex items-start gap-3 rounded-2xl px-2 py-2 transition hover:bg-card-2">
       <div className="pt-0.5">
         <Checkbox
           checked={item.done}
@@ -32,21 +34,21 @@ export function ItemRow({
         <span className={cx('block break-words font-semibold transition', item.done && 'text-muted line-through')}>
           {item.title}
         </span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
-          {listName && <span className={cx('font-semibold', meta.text)}>{listName}</span>}
-          {item.category && (
-            <span className={cx('rounded-full px-2 py-0.5 font-semibold', meta.soft, meta.text)}>{item.category}</span>
-          )}
-          {item.tags.map((t) => (
-            <span key={t} className="font-medium">
-              #{t}
-            </span>
-          ))}
-          {item.note && <StickyNote className="size-3.5" aria-label="Has a note" />}
-          <span className="opacity-0 transition group-hover:opacity-100">
-            · added {relativeDay(toISODate(new Date(item.created_at)))}
+        {(listName || item.category || item.tags.length > 0 || item.note || showDate) && (
+          <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+            {listName && <span className={cx('font-semibold', meta.text)}>{listName}</span>}
+            {item.category && (
+              <span className={cx('rounded-full px-2 py-0.5 font-semibold', meta.soft, meta.text)}>{item.category}</span>
+            )}
+            {item.tags.map((t) => (
+              <span key={t} className="font-medium">
+                #{t}
+              </span>
+            ))}
+            {item.note && <StickyNote className="size-3.5" aria-label="Has a note" />}
+            {showDate && <span>added {relativeDay(toISODate(new Date(item.created_at)))}</span>}
           </span>
-        </span>
+        )}
       </button>
     </li>
   )

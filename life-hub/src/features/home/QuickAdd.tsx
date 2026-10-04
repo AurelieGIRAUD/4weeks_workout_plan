@@ -68,7 +68,7 @@ export function QuickAdd() {
           </button>
         </form>
 
-        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-0.5" role="group" aria-label="List type">
+        <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="List type">
           {LIST_TYPE_ORDER.map((t) => {
             const m = LIST_TYPES[t]
             const Icon = m.icon

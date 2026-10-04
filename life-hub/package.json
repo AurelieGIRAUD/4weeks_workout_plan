@@ -11,7 +11,8 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:db": "./supabase/tests/run_local.sh",
-    "icons": "./scripts/make-icons.sh"
+    "icons": "./scripts/make-icons.sh",
+    "test:functions": "DENO_NO_PACKAGE_JSON=1 deno test --allow-env supabase/functions/_shared/token.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

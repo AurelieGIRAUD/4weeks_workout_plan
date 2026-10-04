@@ -118,6 +118,7 @@ export default function WorkoutsPage() {
         <StatTile label="Sessions" value={summary.sessions} />
         <StatTile label="Active days" value={`${summary.activeDays}/7`} />
         <StatTile
+          className="col-span-2 sm:col-span-1"
           label="Streak"
           value={
             <span className="inline-flex items-center gap-1">
@@ -303,9 +304,9 @@ export default function WorkoutsPage() {
   )
 }
 
-function StatTile({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
+function StatTile({ label, value, hint, className }: { label: string; value: React.ReactNode; hint?: string; className?: string }) {
   return (
-    <Card className="flex flex-col justify-center">
+    <Card className={cx('flex flex-col justify-center', className)}>
       <p className="text-sm text-muted">{label}</p>
       <p className="text-2xl font-extrabold">{value}</p>
       {hint && <p className="text-xs text-muted">{hint}</p>}

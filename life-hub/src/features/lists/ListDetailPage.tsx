@@ -235,6 +235,7 @@ export default function ListDetailPage() {
                   key={i.id}
                   item={i}
                   type={list.type}
+                  showDate
                   onToggle={(d) => update.mutate({ id: i.id, patch: { done: d } })}
                   onOpen={() => openEditor(i.id)}
                 />

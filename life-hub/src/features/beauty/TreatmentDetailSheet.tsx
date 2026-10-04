@@ -74,11 +74,11 @@ export function TreatmentDetailSheet({
 
         <form onSubmit={submit} className="flex flex-col gap-2 rounded-3xl border border-line p-3">
           <p className="font-bold">Log it</p>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <input
               type="date"
               aria-label="Done on"
-              className={inputClass + ' w-auto'}
+              className={inputClass + ' sm:w-auto'}
               value={doneOn}
               max={today}
               onChange={(e) => setDoneOn(e.target.value)}

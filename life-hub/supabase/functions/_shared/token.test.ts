@@ -1,4 +1,4 @@
-// deno test --allow-env supabase/functions/_shared/token.test.ts
+// npm run test:functions  (from life-hub/)
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import { signReminderToken, verifyReminderToken } from "./token.ts";
 
