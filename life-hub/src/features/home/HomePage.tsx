@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { useProfile } from '@/lib/profile'
+import { BeautyDueCard } from './BeautyDueCard'
 import { ChoresCard } from './ChoresCard'
 import { QuickAdd } from './QuickAdd'
 import { WorkoutWeekCard } from './WorkoutWeekCard'
@@ -28,6 +29,7 @@ export default function HomePage() {
       <QuickAdd />
       <div className="grid gap-4 lg:grid-cols-2">
         <ChoresCard />
+        <BeautyDueCard />
         <WorkoutWeekCard />
       </div>
     </div>

@@ -9,10 +9,12 @@ function b64url(bytes: Uint8Array): string {
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function fromB64url(s: string): Uint8Array {
+function fromB64url(s: string): Uint8Array<ArrayBuffer> {
   const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
   const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/") + pad);
-  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  const out = new Uint8Array(new ArrayBuffer(bin.length));
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 async function key(): Promise<CryptoKey> {
@@ -40,9 +42,14 @@ export async function signReminderToken(userId: string, treatmentId: string, ttl
 export async function verifyReminderToken(token: string): Promise<ReminderClaims | null> {
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
-  const ok = await crypto.subtle.verify("HMAC", await key(), fromB64url(sig), encoder.encode(body));
-  if (!ok) return null;
-  const claims = JSON.parse(new TextDecoder().decode(fromB64url(body))) as ReminderClaims;
+  let claims: ReminderClaims;
+  try {
+    const ok = await crypto.subtle.verify("HMAC", await key(), fromB64url(sig), encoder.encode(body));
+    if (!ok) return null;
+    claims = JSON.parse(new TextDecoder().decode(fromB64url(body))) as ReminderClaims;
+  } catch {
+    return null; // malformed base64 / JSON
+  }
   if (typeof claims.exp !== "number" || claims.exp < Date.now() / 1000) return null;
   return claims;
 }

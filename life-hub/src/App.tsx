@@ -8,6 +8,7 @@ import HomePage from './features/home/HomePage'
 import ListDetailPage from './features/lists/ListDetailPage'
 import ListsPage from './features/lists/ListsPage'
 import { useAdoptDeviceTimezone } from './lib/profile'
+import { usePushSync } from './lib/push'
 
 const WorkoutsPage = lazy(() => import('./features/workouts/WorkoutsPage'))
 const BeautyPage = lazy(() => import('./features/beauty/BeautyPage'))
@@ -15,6 +16,7 @@ const SettingsPage = lazy(() => import('./features/settings/SettingsPage'))
 
 function SignedInApp() {
   useAdoptDeviceTimezone()
+  usePushSync()
   return (
     <Suspense fallback={<Spinner className="mx-auto mt-16" />}>
       <Routes>

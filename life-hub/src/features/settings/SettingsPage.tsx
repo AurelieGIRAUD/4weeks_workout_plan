@@ -4,6 +4,7 @@ import { useAuth } from '@/auth/AuthProvider'
 import { Button, Card, Chip, ErrorNote, Field, inputClass, PageHeader } from '@/components/ui'
 import { useProfile, useUpdateProfile } from '@/lib/profile'
 import { useTheme, type ThemeChoice } from '@/lib/theme'
+import { NotificationsCard } from './NotificationsCard'
 
 const THEMES: { value: ThemeChoice; label: string; icon: typeof Sun }[] = [
   { value: 'light', label: 'Light', icon: Sun },
@@ -42,6 +43,8 @@ export default function SettingsPage() {
             <ErrorNote error={update.error} />
           </form>
         </Card>
+
+        <NotificationsCard />
 
         <Card>
           <h2 className="mb-3 text-lg font-extrabold">Appearance</h2>
