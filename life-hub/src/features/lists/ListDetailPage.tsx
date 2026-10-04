@@ -1,7 +1,8 @@
-import { Archive, ArchiveRestore, ArrowLeft, ChevronDown, Pencil, Plus, Trash2, Zap } from 'lucide-react'
+import { Archive, ArchiveRestore, ArrowLeft, ChevronDown, Pencil, Plus, Trash2, UserPlus, Users, Zap } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useUserId } from '@/auth/AuthProvider'
+import { Avatar } from '@/components/Avatar'
 import { useToast } from '@/components/Toast'
 import { Button, Card, Chip, cx, EmptyState, ErrorNote, IconButton, inputClass, Sheet, Spinner } from '@/components/ui'
 import { relativeDay, toISODate } from '@/lib/dates'
@@ -24,6 +25,7 @@ import {
 import { facets, filterItems } from './filter'
 import { ItemEditor } from './ItemEditor'
 import { ItemRow } from './ItemRow'
+import { ShareSheet } from './ShareSheet'
 
 export default function ListDetailPage() {
   const { listId = '' } = useParams()
@@ -51,6 +53,7 @@ export default function ListDetailPage() {
   const [showDone, setShowDone] = useState(true)
   const [showArchived, setShowArchived] = useState(false)
   const [renaming, setRenaming] = useState<string | null>(null)
+  const [sharing, setSharing] = useState(false)
 
   const list = lists?.find((l) => l.id === listId)
   const archived = useArchivedItems(listId, showArchived)
@@ -135,6 +138,23 @@ export default function ListDetailPage() {
             {!isOwner && ` · shared by ${list.owner?.display_name || list.owner?.email}`}
           </p>
         </div>
+        {(list.members?.length ?? 0) > 0 || !isOwner ? (
+          <button
+            type="button"
+            onClick={() => setSharing(true)}
+            className="flex items-center -space-x-2 rounded-full p-1 transition hover:bg-card-2"
+            aria-label="People on this list"
+          >
+            {list.owner && <Avatar name={list.owner.display_name} email={list.owner.email} />}
+            <span className="grid size-8 place-items-center rounded-full bg-sky-100 text-sky-700 ring-2 ring-card dark:bg-sky-500/20 dark:text-sky-200">
+              <Users className="size-4" aria-hidden />
+            </span>
+          </button>
+        ) : (
+          <IconButton label="Share list" onClick={() => setSharing(true)}>
+            <UserPlus className="size-5" />
+          </IconButton>
+        )}
         {isOwner && (
           <IconButton label="Rename list" onClick={() => setRenaming(list.name)}>
             <Pencil className="size-5" />
@@ -297,6 +317,8 @@ export default function ListDetailPage() {
         tags={tags}
         onClose={() => openEditor(null)}
       />
+
+      <ShareSheet list={list} open={sharing} onClose={() => setSharing(false)} />
 
       <Sheet
         open={renaming !== null}
