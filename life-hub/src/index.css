@@ -27,6 +27,11 @@
   --lh-ink: #1e1b2e;
   --lh-muted: #6b6880;
   --lh-line: #ebe6f5;
+  /* Chart tokens (validated with the dataviz palette checker) */
+  --lh-chart: #059669;
+  --lh-chart-goal: #6b6880;
+  --lh-grid: #ebe6f5;
+  --lh-axis: #8a879c;
 }
 
 .dark {
@@ -37,6 +42,10 @@
   --lh-ink: #f4f2fb;
   --lh-muted: #a6a2ba;
   --lh-line: #322c48;
+  --lh-chart: #12a877;
+  --lh-chart-goal: #a6a2ba;
+  --lh-grid: #2c2740;
+  --lh-axis: #8a879c;
 }
 
 html,
