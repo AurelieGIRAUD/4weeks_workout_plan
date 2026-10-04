@@ -1,0 +1,13 @@
+# Only the bits Life Hub needs on top of `supabase init` defaults.
+project_id = "life-hub"
+
+[functions.send-reminders]
+# Called by pg_cron with a shared secret (CRON_SECRET), not a user JWT.
+verify_jwt = false
+
+[functions.reminder-action]
+# Called by the service worker with a signed, short-lived action token.
+verify_jwt = false
+
+[functions.push-test]
+verify_jwt = true

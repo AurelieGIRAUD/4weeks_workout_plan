@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: ui-rounded, "SF Pro Rounded", "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --color-bg: var(--lh-bg);
+  --color-card: var(--lh-card);
+  --color-card-2: var(--lh-card-2);
+  --color-ink: var(--lh-ink);
+  --color-muted: var(--lh-muted);
+  --color-line: var(--lh-line);
+
+  --animate-pop: lh-pop 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-rise: lh-rise 0.28s ease-out both;
+  --animate-sheet: lh-sheet 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+  --animate-fade: lh-fade 0.2s ease-out;
+  --animate-wiggle: lh-wiggle 0.5s ease-in-out;
+}
+
+:root {
+  color-scheme: light;
+  --lh-bg: #faf7ff;
+  --lh-card: #ffffff;
+  --lh-card-2: #f4f0fb;
+  --lh-ink: #1e1b2e;
+  --lh-muted: #6b6880;
+  --lh-line: #ebe6f5;
+}
+
+.dark {
+  color-scheme: dark;
+  --lh-bg: #14111f;
+  --lh-card: #1f1b2e;
+  --lh-card-2: #28233a;
+  --lh-ink: #f4f2fb;
+  --lh-muted: #a6a2ba;
+  --lh-line: #322c48;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--lh-bg);
+  color: var(--lh-ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* Inputs at 16px stop iOS Safari from zooming in on focus. */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@keyframes lh-pop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes lh-rise {
+  0% { transform: translateY(8px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes lh-sheet {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+@keyframes lh-fade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes lh-wiggle {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pb-nav { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)); }
+@media (min-width: 768px) {
+  .pb-nav { padding-bottom: 2rem; }
+}
