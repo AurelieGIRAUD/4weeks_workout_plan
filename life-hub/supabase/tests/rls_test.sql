@@ -13,7 +13,12 @@ insert into auth.users (id, email) values
 
 -- ---------------------------------------------------------------- signup
 do $$ begin
-  assert (select count(*) from public.profiles) = 3, 'profiles created on signup';
+  assert (select count(*) from public.profiles where id <> '99999999-9999-9999-9999-999999999999') = 3,
+    'profiles created on signup';
+  assert (select email from public.profiles where id = '99999999-9999-9999-9999-999999999999') = 'early@example.com',
+    'pre-existing account backfilled';
+  assert (select count(*) from public.lists where owner_id = '99999999-9999-9999-9999-999999999999' and is_default) = 5,
+    'pre-existing account gets default lists';
   assert (select email from public.profiles where id = '11111111-1111-1111-1111-111111111111') = 'alice@example.com',
     'email is lower-cased';
   assert (select count(*) from public.lists where owner_id = '11111111-1111-1111-1111-111111111111' and is_default) = 5,

@@ -46,12 +46,13 @@ life-hub/
 ## 1. Set up Supabase
 
 1. Create a project at [supabase.com](https://supabase.com). Life Hub's tables don't clash with the old workout app's tables, so the same project works.
-2. **Apply the schema.** Pick one:
+2. **Adding Life Hub to an existing project?** First run `supabase/setup/preflight.sql` in the **SQL Editor**. It's read-only, and every row should say `ok` (the last row just counts existing accounts). Accounts that already exist get a profile and default lists from the migration.
+3. **Apply the schema.** Pick one:
    - CLI: `npx supabase link --project-ref <ref>` then `npx supabase db push`
    - Dashboard: paste `supabase/migrations/20261004000000_init.sql` into **SQL Editor** and run it.
-3. **Auth → Providers → Email**: make sure it's enabled.
-4. **Auth → URL Configuration**: set **Site URL** to your production URL. Under **Redirect URLs**, add `http://localhost:5173` and your production URL.
-5. **Auth → Email Templates**: add the code to both the **Magic Link** and **Confirm signup** templates, so people can sign in from an installed iPhone app:
+4. **Auth → Providers → Email**: make sure it's enabled.
+5. **Auth → URL Configuration**: set **Site URL** to your production URL. Under **Redirect URLs**, add `http://localhost:5173` and your production URL.
+6. **Auth → Email Templates**: add the code to both the **Magic Link** and **Confirm signup** templates, so people can sign in from an installed iPhone app:
    ```html
    <h2>Sign in to Life Hub</h2>
    <p><a href="{{ .ConfirmationURL }}">Sign in</a></p>

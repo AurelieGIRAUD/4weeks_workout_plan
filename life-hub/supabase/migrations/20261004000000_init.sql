@@ -446,6 +446,28 @@ create trigger on_auth_user_email_changed
   when (new.email is distinct from old.email and new.email is not null)
   execute function public.handle_user_email_change();
 
+-- Accounts created before this migration (e.g. when Life Hub is added to an
+-- existing project) never fired the trigger: give them a profile and default
+-- lists too. Safe to re-run.
+insert into public.profiles (id, email)
+select u.id, coalesce(lower(u.email), u.id::text || '@unknown.invalid')
+from auth.users u
+on conflict (id) do nothing;
+
+insert into public.lists (owner_id, type, name, is_default)
+select p.id, d.type, d.name, true
+from public.profiles p
+cross join (values
+  ('want_to_buy'::public.list_type, 'Want to Buy'),
+  ('need_to_buy'::public.list_type, 'Need to Buy'),
+  ('chores'::public.list_type,      'Chores'),
+  ('todo'::public.list_type,        'To-Do'),
+  ('ideas'::public.list_type,       'Ideas')
+) as d (type, name)
+where not exists (
+  select 1 from public.lists l where l.owner_id = p.id and l.type = d.type and l.is_default
+);
+
 -- -----------------------------------------------------------------------------
 -- Reminders (called by Edge Functions with the service role only)
 -- -----------------------------------------------------------------------------
