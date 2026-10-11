@@ -1,5 +1,7 @@
 # 🏋️‍♀️ My 4-Week Badass Workout Plan
 
+> **New:** [Life Hub](./life-hub/README.md) — lists, workouts and beauty care in one PWA — lives in `life-hub/`. This root app is unchanged.
+
 A personal fitness Progressive Web App (PWA) built to track a 4-week strength and cardio programme. Installable on iPhone, syncs across devices via Supabase.
 
 ## What it does
